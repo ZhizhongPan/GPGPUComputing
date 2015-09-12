@@ -43,14 +43,22 @@ writeFile(char* filename, double* vector){
 
 int main(int argc, char* argv[]){
     
-    double vector1[LENGTH] = {1.0};
-    double vector2[LENGTH] = {1.0};
+    double* vector1 = new double[LENGTH];
+    double* vector2 = new double[LENGTH];
+    
+    for (int i = 0; i < LENGTH; i++) {
+        vector1[i] = 1.0;
+        vector2[i] = 1.0;
+    }
     
     writeFile(argv[1], vector1);
     writeFile(argv[2], vector2);
     
     double result = dotProd(vector1, vector2);
-    printf("The Result is %f:", result);
+    
+    delete[] vector1;
+    delete[] vector2;
+    printf("The Result is %f: \n", result);
     
     
 }
