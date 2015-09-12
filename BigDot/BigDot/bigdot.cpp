@@ -76,7 +76,7 @@ setBuffers()
 }
 
 
-static double*
+double*
 readFile(char* filename){
     unsigned int length;
     double* vector;
@@ -103,7 +103,7 @@ readFile(char* filename){
 }
 
 
-static double
+double
 dotProd(double* vector1, double* vector2)
 {
     initCL();
@@ -122,8 +122,8 @@ dotProd(double* vector1, double* vector2)
     
     
     clEnqueueNDRangeKernel(command, multiKernel,1,NULL,workItemCount,localItemCout,0,NULL,NULL);
-    printf("--------------------------------------- from ---------------------------------\n");
-    clEnqueueReadBuffer(command,output[from],CL_TRUE,0,workItemCount[0]*sizeof(double),result2,0,NULL,NULL);
+
+    clEnqueueReadBuffer(command,output[0],CL_TRUE,0,workItemCount[0]*sizeof(double),result2,0,NULL,NULL);
     for (int i = 0; i < workItemCount[0]; i++)
         printf("%f, ", result2[i]);
 
@@ -166,6 +166,8 @@ dotProd(double* vector1, double* vector2)
     }
 
     clEnqueueReadBuffer(command,output[from],CL_TRUE,0,1*sizeof(double),result,0,NULL,NULL);
+
+
         
     return result[0];
     
@@ -199,15 +201,13 @@ main(int argc, char * argv[])
         exit(-1);
     }
     
-    //signal(SIGUSR1, cleanup);
+    signal(SIGUSR1, cleanup);
     vector1 = readFile(argv[1]);
     vector2 = readFile(argv[2]);
     double result = dotProd(vector1, vector2);
-    for (int i = 0; i < GWS; i++){
-//	printf("%f ,", vector1[i]);
-    }
+
     
     printf("Result: %f\n", result);
-    //cleanup(SIGUSR1);
+    cleanup(SIGUSR1);
     return 0;
 }
