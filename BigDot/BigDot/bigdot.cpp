@@ -33,7 +33,7 @@ cl_device_id *device;
 cl_command_queue command;
 cl_kernel multiKernel, reduceKernel;
 cl_program program;
-cl_mem inputVector1, inputVector2, multiResult, output;
+cl_mem inputVector1, inputVector2, output[2];
 
 
 void
@@ -71,8 +71,8 @@ setBuffers()
                                 GWS * sizeof(double),vector2,NULL);
 
 
-    multiResult = clCreateBuffer(context,CL_MEM_READ_WRITE, (GWS) * sizeof(double),NULL,NULL);
-    output = clCreateBuffer(context,CL_MEM_READ_WRITE, (GWS) * sizeof(double),NULL,NULL);
+    output[0] = clCreateBuffer(context,CL_MEM_READ_WRITE, (GWS) * sizeof(double),NULL,NULL);
+    output[1] = clCreateBuffer(context,CL_MEM_READ_WRITE, (GWS) * sizeof(double),NULL,NULL);
 }
 
 
@@ -118,7 +118,7 @@ dotProd(double* vector1, double* vector2)
     
     clSetKernelArg(multiKernel,0,sizeof(cl_mem),(void *)&inputVector1);
     clSetKernelArg(multiKernel,1,sizeof(cl_mem),(void *)&inputVector2);
-    clSetKernelArg(multiKernel,2,sizeof(cl_mem),(void *)&multiResult);
+    clSetKernelArg(multiKernel,2,sizeof(cl_mem),(void *)output[0]);
     
     
     clEnqueueNDRangeKernel(command, multiKernel,1,NULL,workItemCount,localItemCout,0,NULL,NULL);
@@ -129,8 +129,8 @@ dotProd(double* vector1, double* vector2)
        if (modVal != 0)
             workItemCount[0] += localItemCout[0] - modVal;
 
-        clSetKernelArg(reduceKernel,0,sizeof(cl_mem),(void *)&output[from]);
-        clSetKernelArg(reduceKernel,1,sizeof(cl_mem),(void *)&output[to]);
+        clSetKernelArg(reduceKernel,0,sizeof(cl_mem),(void *)output[from]);
+        clSetKernelArg(reduceKernel,1,sizeof(cl_mem),(void *)output[to]);
         
         // do ping-pong
         from = 1 - from;
