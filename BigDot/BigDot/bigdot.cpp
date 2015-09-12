@@ -84,10 +84,10 @@ readFile(char* filename){
     
     filePtr = fopen(filename, "r");
     if (filePtr != NULL){
-        fread(&length, sizeof(unsigned int), 1, filePtr);
-        
+        fread(&length, sizeof(unsigned int), 1, filePtr);    
         // make the init vector size be an integer multiple of LWS
-        GWS = LWS - length % LWS + length;
+        if (length % LWS != 0)
+            GWS = LWS - length % LWS + length;
         vector = new double[GWS];
         fread(vector, sizeof(double), length , filePtr);
         
@@ -109,9 +109,10 @@ dotProd(double* vector1, double* vector2)
     initCL();
     setBuffers();
     
-    
     unsigned int from = 0, to = 1;
-    double result;
+    unsigned int modVal;
+    double result[1];
+    double result2[GWS];
     size_t workItemCount[1] = {GWS};    // store global work size
     size_t localItemCout[1] = {LWS};
     
@@ -121,8 +122,8 @@ dotProd(double* vector1, double* vector2)
     
     
     clEnqueueNDRangeKernel(command, multiKernel,1,NULL,workItemCount,localItemCout,0,NULL,NULL);
-    
-    while (workItemCount[0] > 1) {
+    printf("-----------------------------------------------------------------------------\n");
+    while (workItemCount[0]  > 1) {
         clSetKernelArg(reduceKernel,0,sizeof(cl_mem),(void *)&output[from]);
         clSetKernelArg(reduceKernel,1,sizeof(cl_mem),(void *)&output[to]);
         
@@ -130,18 +131,20 @@ dotProd(double* vector1, double* vector2)
         from = 1 - from;
         to = 1 -to;
         
-        workItemCount[0] += localItemCout[0] - workItemCount[0] % localItemCout[0];
+        clEnqueueReadBuffer(command, output[1],CL_TRUE,0,workItemCount[0]*sizeof(double),result2,0,NULL,NULL);
+        for (int i = 0; i < workItemCount[0]; i ++)
+	    printf("%f ,", result2[i]);
+        modVal = workItemCount[0] % localItemCout[0]; 
+	if (modVal != 0)
+            workItemCount[0] += localItemCout[0] - modVal; 
         clEnqueueNDRangeKernel(command,reduceKernel,1,NULL, workItemCount ,localItemCout,0,NULL,NULL);
-        workItemCount[0] = ceil( workItemCount[0] / double (localItemCout[0]));
+        workItemCount[0] = ceil( workItemCount[0]  / double (localItemCout[0])); 
+	printf("work : %d\n", workItemCount[0]);
     }
     
-    // decide which buffer have the final result
-    if (from == 0)
-        clEnqueueReadBuffer(command,output[1],CL_TRUE,0,1*sizeof(double),&result,0,NULL,NULL);
-    else
-        clEnqueueReadBuffer(command,output[0],CL_TRUE,0,1*sizeof(double),&result,0,NULL,NULL);
+    clEnqueueReadBuffer(command,output[from],CL_TRUE,0,1*sizeof(double),result,0,NULL,NULL);
         
-    return result;
+    return result[0];
     
     
 }
@@ -149,9 +152,7 @@ dotProd(double* vector1, double* vector2)
 void
 cleanup(int signo)
 {
-    // clean host
-    delete[] vector1;
-    delete[] vector2;
+    int i;
     
     // clean device
     clReleaseProgram(program);
@@ -178,8 +179,11 @@ main(int argc, char * argv[])
     signal(SIGUSR1, cleanup);
     vector1 = readFile(argv[1]);
     vector2 = readFile(argv[2]);
-    
     double result = dotProd(vector1, vector2);
+    for (int i = 0; i < GWS; i++){
+//	printf("%f ,", vector1[i]);
+    }
+    
     printf("Result: %f\n", result);
     cleanup(SIGUSR1);
     return 0;

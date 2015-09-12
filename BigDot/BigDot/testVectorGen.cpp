@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define LENGTH 257
+#define LENGTH 11
 
 static double
 dotProd(double* v1, double* v2){
