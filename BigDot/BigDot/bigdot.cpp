@@ -73,27 +73,6 @@ setBuffers()
 }
 
 
-
-static int
-validation(double* vector1, double* vector2, double clResult){
-    unsigned int i;
-    double result = 0;
-    for (i = 0; i < GWS; i++) {
-        result += vector1[i] * vector2[i];
-    }
-    
-    if (result != clResult) {
-        fprintf(stdout,
-                "Error: Expect: %f \n   Get: %f.\n", result, clResult);
-        fflush(stdout);
-        return 1;
-    } else {
-        printf("PASS!\n");
-    }
-    return 0;
-}
-
-
 static double
 dotProd(double* vector1, double* vector2){
     initCL();
@@ -203,24 +182,17 @@ readFile(char* filename){
 int
 main(int argc, char * argv[])
 {
-    // Debug and Test Code
-    
-    writeFile("V1", 512);
-    writeFile("V2", 512);
-    /*
     if (argc < 3) {
         fprintf(stderr, "Error! Usage: ./bigdot file file \n");
         exit(-1);
-    }*/
+    }
     signal(SIGUSR1, cleanup);
     vector1 = readFile(argv[1]);
     vector2 = readFile(argv[2]);
-    printf("%s\n", "-----------");
-    
-    
+  
     double result = dotProd(vector1, vector2);
-    validation(vector1, vector2,result);
     printf("Result: %f\n", result);
+    printf("%s\n", "-----------");
     cleanup(SIGUSR1);
     return 0;
 }
