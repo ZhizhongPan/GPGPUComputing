@@ -28,5 +28,8 @@
 *.x86_64
 *.hex
 
+#xcode
+*.xcodeporj
+
 # Debug files
 *.dSYM/
