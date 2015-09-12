@@ -115,6 +115,9 @@ dotProd(double* vector1, double* vector2)
     double result2[GWS];
     size_t workItemCount[1] = {GWS};    // store global work size
     size_t localItemCout[1] = {LWS};
+
+    for (int i = 0; i < workItemCount[0]; i++)
+            printf("%f, ", vector1[i]);
     
     clSetKernelArg(multiKernel,0,sizeof(cl_mem),(void *)&inputVector1);
     clSetKernelArg(multiKernel,1,sizeof(cl_mem),(void *)&inputVector2);
@@ -166,16 +169,6 @@ dotProd(double* vector1, double* vector2)
     }
 
     clEnqueueReadBuffer(command,output[from],CL_TRUE,0,1*sizeof(double),result,0,NULL,NULL);
-
-    clReleaseProgram(program);
-    clReleaseContext(context);
-    clReleaseKernel(multiKernel);
-    clReleaseKernel(reduceKernel);
-    clReleaseCommandQueue(command);
-    clReleaseMemObject(inputVector1);
-    clReleaseMemObject(inputVector2);
-    clReleaseMemObject(output[0]);
-    clReleaseMemObject(output[1]);
         
     return result[0];
     
@@ -209,13 +202,13 @@ main(int argc, char * argv[])
         exit(-1);
     }
     
-   // signal(SIGUSR1, cleanup);
+    signal(SIGUSR1, cleanup);
     vector1 = readFile(argv[1]);
     vector2 = readFile(argv[2]);
     double result = dotProd(vector1, vector2);
 
     
     printf("Result: %f\n", result);
- //   cleanup(SIGUSR1);
+    cleanup(SIGUSR1);
     return 0;
 }
