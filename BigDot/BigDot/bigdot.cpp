@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
+#include <string.h>
 #include <signal.h>
 #include <CL/cl.h>
 
@@ -178,17 +179,18 @@ readFile(char* filename){
     unsigned int length;
     double* vector;
     FILE *filePtr;
+    size_t readResult;
     
     filePtr = fopen(filename, "r");
     if (filePtr != NULL){
-        fread(&length, sizeof(unsigned int), 1, filePtr);
+        readResult = fread(&length, sizeof(unsigned int), 1, filePtr);
 
         if (length % LWS != 0) 
             GWS = length + LWS - length % LWS;
         else
             GWS = length;
         vector = new double[GWS];
-        fread(vector, sizeof(double), length , filePtr);
+        readResult = fread(vector, sizeof(double), length , filePtr);
     }else{
         fprintf(stderr, "Can't open file %s \n", filename);
         exit(-1);
