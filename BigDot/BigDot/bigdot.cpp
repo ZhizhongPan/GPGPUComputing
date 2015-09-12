@@ -122,6 +122,10 @@ dotProd(double* vector1, double* vector2)
     
     
     clEnqueueNDRangeKernel(command, multiKernel,1,NULL,workItemCount,localItemCout,0,NULL,NULL);
+    printf("--------------------------------------- from ---------------------------------\n");
+    clEnqueueReadBuffer(command,output[from],CL_TRUE,0,workItemCount[0]*sizeof(double),result2,0,NULL,NULL);
+    for (int i = 0; i < workItemCount[0]; i++)
+        printf("%f, ", result2[i]);
 
     while (workItemCount[0]  > 1) {
 
@@ -136,7 +140,7 @@ dotProd(double* vector1, double* vector2)
         from = 1 - from;
         to = 1 -to;
 
-        printf("=================================  before ======================================");
+        printf("=================================  before ======================================\n");
         printf("--------------------------------------- from ---------------------------------\n");
         clEnqueueReadBuffer(command,output[from],CL_TRUE,0,workItemCount[0]*sizeof(double),result2,0,NULL,NULL);
         for (int i = 0; i < workItemCount[0]; i++)
@@ -148,7 +152,7 @@ dotProd(double* vector1, double* vector2)
 
         clEnqueueNDRangeKernel(command,reduceKernel,1,NULL, workItemCount ,localItemCout,0,NULL,NULL);
 
-        printf("=================================  after ======================================");
+        printf("=================================  after ======================================\n");
         clEnqueueReadBuffer(command,output[from],CL_TRUE,0,workItemCount[0]*sizeof(double),result2,0,NULL,NULL);
         for (int i = 0; i < workItemCount[0]; i++)
             printf("%f, ", result2[i]);
@@ -195,7 +199,7 @@ main(int argc, char * argv[])
         exit(-1);
     }
     
-    signal(SIGUSR1, cleanup);
+    //signal(SIGUSR1, cleanup);
     vector1 = readFile(argv[1]);
     vector2 = readFile(argv[2]);
     double result = dotProd(vector1, vector2);
@@ -204,6 +208,6 @@ main(int argc, char * argv[])
     }
     
     printf("Result: %f\n", result);
-    cleanup(SIGUSR1);
+    //cleanup(SIGUSR1);
     return 0;
 }
