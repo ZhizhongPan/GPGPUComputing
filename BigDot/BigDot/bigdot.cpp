@@ -33,7 +33,7 @@ cl_device_id *device;
 cl_command_queue command;
 cl_kernel multiKernel, reduceKernel;
 cl_program program;
-cl_mem inputVector1, inputVector2, output[2];
+cl_mem inputVector1, inputVector2, multiResult, output;
 
 
 void
@@ -71,8 +71,8 @@ setBuffers()
                                 GWS * sizeof(double),vector2,NULL);
 
 
-    output[0] = clCreateBuffer(context,CL_MEM_READ_WRITE, (GWS) * sizeof(double),NULL,NULL);
-    output[1] = clCreateBuffer(context,CL_MEM_READ_WRITE, (GWS) * sizeof(double),NULL,NULL);
+    multiResult = clCreateBuffer(context,CL_MEM_READ_WRITE, (GWS) * sizeof(double),NULL,NULL);
+    output = clCreateBuffer(context,CL_MEM_READ_WRITE, (GWS) * sizeof(double),NULL,NULL);
 }
 
 
@@ -118,11 +118,11 @@ dotProd(double* vector1, double* vector2)
     
     clSetKernelArg(multiKernel,0,sizeof(cl_mem),(void *)&inputVector1);
     clSetKernelArg(multiKernel,1,sizeof(cl_mem),(void *)&inputVector2);
-    clSetKernelArg(multiKernel,2,sizeof(cl_mem),(void *)&output[0]);
+    clSetKernelArg(multiKernel,2,sizeof(cl_mem),(void *)&multiResult);
     
     
     clEnqueueNDRangeKernel(command, multiKernel,1,NULL,workItemCount,localItemCout,0,NULL,NULL);
-    printf("-----------------------------------------------------------------------------\n");
+    /*
     while (workItemCount[0]  > 1) {
         clSetKernelArg(reduceKernel,0,sizeof(cl_mem),(void *)&output[from]);
         clSetKernelArg(reduceKernel,1,sizeof(cl_mem),(void *)&output[to]);
@@ -135,11 +135,47 @@ dotProd(double* vector1, double* vector2)
         for (int i = 0; i < workItemCount[0]; i ++)
 	    printf("%f ,", result2[i]);
         modVal = workItemCount[0] % localItemCout[0]; 
-	if (modVal != 0)
+	   if (modVal != 0)
             workItemCount[0] += localItemCout[0] - modVal; 
         clEnqueueNDRangeKernel(command,reduceKernel,1,NULL, workItemCount ,localItemCout,0,NULL,NULL);
-        workItemCount[0] = ceil( workItemCount[0]  / double (localItemCout[0])); 
-	printf("work : %d\n", workItemCount[0]);
+        workItemCount[0] = ceil( workItemCount[0]  / double (localItemCout[0]));
+    }*/
+    int pingPongStatus = 0;   
+
+            //Excute the reduce kernel
+    while (workItemCount[0] > 1){
+        
+        //Padding and re-caculate the glolab work size
+        padding = localItemCout[0] - workItemCount[0] % localItemCout[0];
+        workItemCount[0] += padding;
+        
+        //Ping-pong buffer, maintain result calculate on card memory.
+        if (pingPongStatus == 0) {
+            clSetKernelArg(reduceKernel,0,sizeof(cl_mem),(void *)&multiResult);
+            clSetKernelArg(reduceKernel,1,sizeof(cl_mem),(void *)&output);
+            pingPongStatus = 1;
+        }else{
+            clSetKernelArg(reduceKernel,0,sizeof(cl_mem),(void *)&output);
+            clSetKernelArg(reduceKernel,1,sizeof(cl_mem),(void *)&multiResult);
+            pingPongStatus = 0;
+        }
+        
+        //transfer final result for card memory to Host memory.
+        clEnqueueNDRangeKernel(command,reduceKernel,1,NULL,workItemCount,localItemCout,0,NULL,NULL);
+        
+        //global work size will reduce by loacl work size everytime by excute the kernel.
+        workItemCount[0] = ceil(double(workItemCount[0]) / double(localItemCout[0]));
+        
+        
+        
+    }
+    
+    // decide which buffer have the final result
+    if (pingPongStatus == 0) {
+        clEnqueueReadBuffer(command,multiResult,CL_TRUE,0,1*sizeof(double),result,0,NULL,NULL);
+    } else{
+        clEnqueueReadBuffer(command,output,CL_TRUE,0,1*sizeof(double),result,0,NULL,NULL);
+        
     }
     
     clEnqueueReadBuffer(command,output[from],CL_TRUE,0,1*sizeof(double),result,0,NULL,NULL);
