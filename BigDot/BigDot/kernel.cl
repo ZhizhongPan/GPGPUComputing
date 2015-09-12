@@ -1,4 +1,3 @@
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
 __kernel void
 multi(__global double* voctor1,
@@ -12,24 +11,24 @@ multi(__global double* voctor1,
 }
 
 __kernel void
-reduce(__global double* input, __global double* output)
+dotReducer(__global double* input,
+           __global double* output)
 {
-    __local double sdata[LWS];
-    unsigned int tid = get_local_id(0);
-    unsigned int i = get_global_id(0);
-    unsigned int groups = get_num_groups(0);
+    __local double localResult[LWS];
+    unsigned int localId = get_local_id(0);
+    unsigned int globalID = get_global_id(0);
     unsigned int s;
+
+    output[globalID] = 0.0;
+    localResult[localId] = input[globalID];
     
-    if (i >= groups) output[i] = 0.0;
-   
-    sdata[tid] = input[i];
     barrier(CLK_LOCAL_MEM_FENCE);
     
-    
     for(s = LWS/2; s > 0; s >>= 1){
-        if (tid < s) sdata[tid] += sdata[tid + s];
+        if (localId < s) localResult[localId] += localResult[localId + s];
         barrier(CLK_LOCAL_MEM_FENCE);
     }
     
-    if (tid == 0) output[get_group_id(0)] = sdata[0];
+    if (localId == 0) output[get_group_id(0)] = localResult[0];
+    
 }
