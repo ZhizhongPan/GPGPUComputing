@@ -14,7 +14,7 @@ multi(__global double* voctor1,
 __kernel void
 reduce(__global double* input, __global double* output)
 {
-    __local double sdata[256];
+    __local double sdata[LWS];
     unsigned int tid = get_local_id(0);
     unsigned int i = get_global_id(0);
     unsigned int groups = get_num_groups(0);
@@ -26,7 +26,7 @@ reduce(__global double* input, __global double* output)
     barrier(CLK_LOCAL_MEM_FENCE);
     
     
-    for(s = LWS/2 ; s > 0; s >>= 1){
+    for(s = LWS/2; s > 0; s >>= 1){
         if (tid < s) sdata[tid] += sdata[tid + s];
         barrier(CLK_LOCAL_MEM_FENCE);
     }

@@ -122,62 +122,45 @@ dotProd(double* vector1, double* vector2)
     
     
     clEnqueueNDRangeKernel(command, multiKernel,1,NULL,workItemCount,localItemCout,0,NULL,NULL);
-    /*
+
     while (workItemCount[0]  > 1) {
+
+        modVal = workItemCount[0] % localItemCout[0]; 
+       if (modVal != 0)
+            workItemCount[0] += localItemCout[0] - modVal;
+
         clSetKernelArg(reduceKernel,0,sizeof(cl_mem),(void *)&output[from]);
         clSetKernelArg(reduceKernel,1,sizeof(cl_mem),(void *)&output[to]);
         
         // do ping-pong
         from = 1 - from;
         to = 1 -to;
-        
-        clEnqueueReadBuffer(command, output[1],CL_TRUE,0,workItemCount[0]*sizeof(double),result2,0,NULL,NULL);
-        for (int i = 0; i < workItemCount[0]; i ++)
-	    printf("%f ,", result2[i]);
-        modVal = workItemCount[0] % localItemCout[0]; 
-	   if (modVal != 0)
-            workItemCount[0] += localItemCout[0] - modVal; 
-        clEnqueueNDRangeKernel(command,reduceKernel,1,NULL, workItemCount ,localItemCout,0,NULL,NULL);
-        workItemCount[0] = ceil( workItemCount[0]  / double (localItemCout[0]));
-    }*/
-    int pingPongStatus = 0;   
 
-            //Excute the reduce kernel
-    while (workItemCount[0] > 1){
-        
-        //Padding and re-caculate the glolab work size
-        padding = localItemCout[0] - workItemCount[0] % localItemCout[0];
-        workItemCount[0] += padding;
-        
-        //Ping-pong buffer, maintain result calculate on card memory.
-        if (pingPongStatus == 0) {
-            clSetKernelArg(reduceKernel,0,sizeof(cl_mem),(void *)&multiResult);
-            clSetKernelArg(reduceKernel,1,sizeof(cl_mem),(void *)&output);
-            pingPongStatus = 1;
-        }else{
-            clSetKernelArg(reduceKernel,0,sizeof(cl_mem),(void *)&output);
-            clSetKernelArg(reduceKernel,1,sizeof(cl_mem),(void *)&multiResult);
-            pingPongStatus = 0;
-        }
-        
-        //transfer final result for card memory to Host memory.
-        clEnqueueNDRangeKernel(command,reduceKernel,1,NULL,workItemCount,localItemCout,0,NULL,NULL);
-        
-        //global work size will reduce by loacl work size everytime by excute the kernel.
-        workItemCount[0] = ceil(double(workItemCount[0]) / double(localItemCout[0]));
-        
-        
-        
+        printf("=================================  before ======================================");
+        printf("--------------------------------------- from ---------------------------------\n");
+        clEnqueueReadBuffer(command,output[from],CL_TRUE,0,workItemCount[0]*sizeof(double),result2,0,NULL,NULL);
+        for (int i = 0; i < workItemCount[0]; i++)
+            printf("%f, ", result2[i]);
+        printf("--------------------------------------- to ---------------------------------\n");
+        clEnqueueReadBuffer(command, output[to],CL_TRUE,0,workItemCount[0]*sizeof(double),result2,0,NULL,NULL);
+        for (int i = 0; i < workItemCount[0]; i++)
+            printf("%f, ", result2[i]);
+
+        clEnqueueNDRangeKernel(command,reduceKernel,1,NULL, workItemCount ,localItemCout,0,NULL,NULL);
+
+        printf("=================================  after ======================================");
+        clEnqueueReadBuffer(command,output[from],CL_TRUE,0,workItemCount[0]*sizeof(double),result2,0,NULL,NULL);
+        for (int i = 0; i < workItemCount[0]; i++)
+            printf("%f, ", result2[i]);
+        printf("--------------------------------------- to ---------------------------------\n");
+        clEnqueueReadBuffer(command, output[to],CL_TRUE,0,workItemCount[0]*sizeof(double),result2,0,NULL,NULL);
+        for (int i = 0; i < workItemCount[0]; i++)
+            printf("%f, ", result2[i]);
+
+
+        workItemCount[0] = ceil( workItemCount[0]  / double (localItemCout[0]));
     }
-    
-    // decide which buffer have the final result
-    if (pingPongStatus == 0) {
-        clEnqueueReadBuffer(command,multiResult,CL_TRUE,0,1*sizeof(double),result,0,NULL,NULL);
-    } else{
-        clEnqueueReadBuffer(command,output,CL_TRUE,0,1*sizeof(double),result,0,NULL,NULL);
-        
-    }
-    
+
     clEnqueueReadBuffer(command,output[from],CL_TRUE,0,1*sizeof(double),result,0,NULL,NULL);
         
     return result[0];
