@@ -112,15 +112,17 @@ dotProd(double* vector1, double* vector2)
     
     unsigned int from = 0, to = 1;
     double result;
-    unsigned int workItem = GWS;
+    size_t workItemCount[1] = {GWS};    // store global work size
+    size_t localItemCout[1] = {LWS};
     
     clSetKernelArg(multiKernel,0,sizeof(cl_mem),(void *)&inputVector1);
     clSetKernelArg(multiKernel,1,sizeof(cl_mem),(void *)&inputVector2);
     clSetKernelArg(multiKernel,2,sizeof(cl_mem),(void *)&output[0]);
     
-    clEnqueueNDRangeKernel(command, multiKernel,1,NULL,GWS,LWS,0,NULL,NULL);
     
-    while (workItem > 1) {
+    clEnqueueNDRangeKernel(command, multiKernel,1,NULL,workItemCount,localItemCout,0,NULL,NULL);
+    
+    while (workItemCount[0] > 1) {
         clSetKernelArg(reduceKernel,0,sizeof(cl_mem),(void *)&output[from]);
         clSetKernelArg(reduceKernel,1,sizeof(cl_mem),(void *)&output[to]);
         
@@ -128,9 +130,9 @@ dotProd(double* vector1, double* vector2)
         from = 1 - from;
         to = 1 -to;
         
-        workItem += LWS - workItem % LWS;
-        clEnqueueNDRangeKernel(command,reduceKernel,1,NULL, workItem ,LWS,0,NULL,NULL);
-        workItem = ceil( workItem / float (LWS));
+        workItemCount[0] += localItemCout[0] - workItemCount[0] % localItemCout[0];
+        clEnqueueNDRangeKernel(command,reduceKernel,1,NULL, workItemCount ,localItemCout,0,NULL,NULL);
+        workItemCount[0] = ceil( workItemCount[0] / double (localItemCout[0]));
     }
     
     // decide which buffer have the final result
