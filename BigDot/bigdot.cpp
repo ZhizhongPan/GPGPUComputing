@@ -128,48 +128,24 @@ cleanup(int signo)
     clReleaseMemObject(output[1]);
     exit(0);
 }
-
-
-static int
-writeFile(char* filename, unsigned int length){
-    int i;
-    FILE *filePtr;
-    
-    double* vector = new double[length];
-    for (i = 0; i < length; i++) {
-        vector[i] = 1.2;
-    }
-    
-    filePtr = fopen(filename, "w+");
-    if (filePtr != NULL) {
-        fwrite(&length, sizeof(unsigned int), 1, filePtr);
-        fwrite(vector, sizeof(double), length, filePtr);
-    }else{
-        fprintf(stderr, "Can't open file %s \n", filename);
-        exit(-1);
-    }
-    fclose(filePtr);
-    return 0;
-}
-
+   
 
 static double*
 readFile(char* filename){
     unsigned int length;
     double* vector;
     FILE *filePtr;
-    size_t readResult;
     
     filePtr = fopen(filename, "r");
     if (filePtr != NULL){
-        readResult = fread(&length, sizeof(unsigned int), 1, filePtr);
+        fread(&length, sizeof(unsigned int), 1, filePtr);
 
         if (length % LWS != 0) 
             GWS = length + LWS - length % LWS;
         else
             GWS = length;
         vector = new double[GWS];
-        readResult = fread(vector, sizeof(double), length , filePtr);
+        fread(vector, sizeof(double), length , filePtr);
     }else{
         fprintf(stderr, "Can't open file %s \n", filename);
         exit(-1);

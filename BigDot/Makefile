@@ -1,12 +1,12 @@
-#!/bin/sh
+
 
 CC = g++
-SRC = $(wildcard *.cpp)
-OBJS = $(SRC:.c = .o)
+OBJS = $(addsuffix .o, $(basename $(shell find *.cpp)))
 DEPS = $(OBJS:.o=.d)
 
+INCLUDE = /usr/local/cuda/include
 LDFLAGS = $(libgl) $(libcl) -lm -lXmu
-CXXFLAGS = -Wno-deprecated-declarations -Wall -Wno-c++11-long-long -pedantic -ansi
+CXXFLAGS = -Wno-deprecated-declarations -Wall  -pedantic -ansi
 
 PORJECT = bigdot 
 
@@ -20,10 +20,10 @@ endif
 
 
 $(PORJECT) : $(OBJS)
-	$(CC) $(LDFLAGS) $^ -o $@
+	$(CC) -I $(INCLUDE) $^ $(LDFLAGS) -o $@
 
 $(OBJS): %.o: %.cpp
-	$(CC) $(CXXFLAGS) -c $< -o $@
+	$(CC) -I  $(CXXFLAGS) -c $^ -o $@ 
 
 $(DEPS): %.d: %.cpp
 	@echo "Generating "$@
@@ -34,8 +34,8 @@ $(DEPS): %.d: %.cpp
 
 。PHONY: tar
 tar:
-	$(clean)
-	tar zcfv $(NAME).tar.gz *.* Makefile 
+	$(make clean)
+	tar zcfv $(NAME).tar.gz *.* Makefile
 
 。PHONY: clean
 clean:
